@@ -232,7 +232,7 @@ async function run() {
     // Start screen recording
     console.log(`::group::Start screen recording`);
     const screenRecordingPath = 'screen_recording.mp4';
-    screenRecordingProcess = await exec.getExecOutput('adb', ['shell', 'screenrecord', '--verbose', '--time-limit', '5', `/sdcard/${screenRecordingPath}`], {
+    screenRecordingProcess = await exec.getExecOutput('adb', ['shell', 'screenrecord', '--verbose', '--time-limit', '60', `/sdcard/${screenRecordingPath}`], {
       ignoreReturnCode: true,
     });
     console.log(`Screen recording started: ${screenRecordingPath}`);
