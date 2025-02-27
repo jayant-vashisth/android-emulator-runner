@@ -1,4 +1,5 @@
 import * as core from '@actions/core';
+import * as exec from '@actions/exec';
 import { installAndroidSdk } from './sdk-installer';
 import {
   checkApiLevel,
@@ -16,10 +17,10 @@ import {
   MIN_PORT,
 } from './input-validator';
 import { launchEmulator, killEmulator } from './emulator-manager';
-import * as exec from '@actions/exec';
 import { parseScript } from './script-parser';
 import { getChannelId } from './channel-id-mapper';
 import { accessSync, constants } from 'fs';
+import { DefaultArtifactClient } from '@actions/artifact';
 
 async function run() {
   let port: number = MIN_PORT;
@@ -231,7 +232,7 @@ async function run() {
     // Start screen recording
     console.log(`::group::Start screen recording`);
     const screenRecordingPath = 'screen_recording.mp4';
-    screenRecordingProcess = await exec.getExecOutput('adb', ['shell', 'screenrecord', '--verbose', `/sdcard/${screenRecordingPath}`], {
+    screenRecordingProcess = await exec.getExecOutput('adb', ['shell', 'screenrecord', '--verbose', '--time-limit', '5', `/sdcard/${screenRecordingPath}`], {
       ignoreReturnCode: true,
     });
     console.log(`Screen recording started: ${screenRecordingPath}`);
@@ -243,6 +244,7 @@ async function run() {
       if (workingDirectory) {
         process.chdir(workingDirectory);
       }
+      console.log(`start executing custom scripts`);
       for (const script of scripts) {
         // use array form to avoid various quote escaping problems
         // caused by exec(`sh -c "${script}"`)
@@ -261,6 +263,13 @@ async function run() {
       await exec.exec('adb', ['pull', `/sdcard/${screenRecordingPath}`, screenRecordingPath]);
       console.log(`Screen recording saved: ${screenRecordingPath}`);
     }
+    console.log(`::endgroup::`);
+
+    // Upload screen recording as an artifact
+    console.log(`::group::Upload screen recording as artifact`);
+    const artifactClient = new DefaultArtifactClient();
+    await artifactClient.uploadArtifact('screen-recording', [screenRecordingPath], '.');
+    console.log(`Screen recording uploaded as artifact.`);
     console.log(`::endgroup::`);
   } catch (error) {
     // kill the emulator so the action can exit
