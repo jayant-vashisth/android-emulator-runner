@@ -238,6 +238,12 @@ async function run() {
     console.log(`Screen recording started: ${screenRecordingPath}`);
     console.log(`::endgroup::`);
 
+    // Open the Settings app
+    console.log(`::group::Open Settings app`);
+    await exec.exec('adb', ['shell', 'am', 'start', '-a', 'android.settings.SETTINGS']);
+    console.log(`Settings app opened.`);
+    console.log(`::endgroup::`);
+
     // execute the custom script
     try {
       // move to custom working directory if set
