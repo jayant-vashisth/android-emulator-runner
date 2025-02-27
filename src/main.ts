@@ -23,6 +23,8 @@ import { accessSync, constants } from 'fs';
 
 async function run() {
   let port: number = MIN_PORT;
+  let screenRecordingProcess: exec.ExecOutput | undefined;
+
   try {
     console.log(`::group::Configure emulator`);
     let linuxSupportKVM = false;
@@ -226,6 +228,15 @@ async function run() {
       enableHardwareKeyboard
     );
 
+    // Start screen recording
+    console.log(`::group::Start screen recording`);
+    const screenRecordingPath = 'screen_recording.mp4';
+    screenRecordingProcess = await exec.getExecOutput('adb', ['shell', 'screenrecord', '--verbose', `/sdcard/${screenRecordingPath}`], {
+      ignoreReturnCode: true,
+    });
+    console.log(`Screen recording started: ${screenRecordingPath}`);
+    console.log(`::endgroup::`);
+
     // execute the custom script
     try {
       // move to custom working directory if set
@@ -243,12 +254,24 @@ async function run() {
       core.setFailed(error instanceof Error ? error.message : (error as string));
     }
 
-    // finally kill the emulator
-    await killEmulator(port);
+    // Stop screen recording
+    console.log(`::group::Stop screen recording`);
+    if (screenRecordingProcess) {
+      await exec.exec('adb', ['shell', 'pkill', '-l', 'SIGINT', 'screenrecord']);
+      await exec.exec('adb', ['pull', `/sdcard/${screenRecordingPath}`, screenRecordingPath]);
+      console.log(`Screen recording saved: ${screenRecordingPath}`);
+    }
+    console.log(`::endgroup::`);
   } catch (error) {
     // kill the emulator so the action can exit
     await killEmulator(port);
     core.setFailed(error instanceof Error ? error.message : (error as string));
+  } finally {
+    // ensure the emulator is killed and screen recording is stopped
+    await killEmulator(port);
+    if (screenRecordingProcess) {
+      await exec.exec('adb', ['shell', 'pkill', '-l', 'SIGINT', 'screenrecord']);
+    }
   }
 }
 
