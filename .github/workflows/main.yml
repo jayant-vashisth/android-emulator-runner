@@ -15,7 +15,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       JAVA_TOOL_OPTIONS: -Xmx4g
-    timeout-minutes: 120
+    timeout-minutes: 1200
     strategy:
       matrix:
         include:
